@@ -1,45 +1,45 @@
-org 0x7C00
+org 0x0
 bits 16
 
 %define ENDL  0x0D , 0x0A
 start:
-	jmp main
+    ; print hello world message
+    mov si, msg
+    call puts
 
+.halt:
+    cli
+    hlt
+
+
+
+;
+; Prints a string to the screen
+; Params:
+;   - ds:si points to string
+;
 puts:
-	push si
-	push ax
+    ; save registers we will modify
+    push si
+    push ax
+    push bx
 
 .loop:
-	lodsb
-	or al, al
-	jz .done
-	mov ah , 0x0E
-	mov bh , 0
-	int 0x10
-	jmp .loop
+    lodsb               ; loads next character in al
+    or al, al           ; verify if next character is null?
+    jz .done
+
+    mov ah, 0x0E        ; call bios interrupt
+    mov bh, 0           ; set page number to 0
+    int 0x10
+
+    jmp .loop
 
 .done:
-	pop ax
-	pop si
-	ret
-	
+    pop bx
+    pop ax
+    pop si    
+    ret
 
+msg: db 'hello world kernel loaded' , ENDL , 0
 
-main:
-	mov ax , 0
-	mov ds , ax
-	mov es , ax
-
-	mov ss , ax
-	mov sp , 0x7C00
-
-	mov si , msg
-	jmp puts
-
-.hlt:
-	jmp .hlt
-
-msg: db 'hello world' , ENDL , 0
-
-times 510-($-$$) db 0
-dw 0AA55h
