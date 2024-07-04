@@ -98,30 +98,30 @@ start:
 	mov bx, buffer							; buffer to read root dir [es:bx]
 	call disk_read
 
-	;search for kernel.bin
+	;search for stage2.bin
 	xor bx, bx
 	mov di, buffer							; now all the records of root dir are in di
 
-.search_kernel:
-	mov si, file_kernel_bin					; si = kernel file name
+.search_stage2:
+	mov si, file_stage2_bin					; si = stage2 file name
 	mov cx, 11								; max 11 letters of name
 	push di									; save di in stack i.e. root dir info
-	repe cmpsb								; cmp str di and si i.e. file kernel and root dir entries
+	repe cmpsb								; cmp str di and si i.e. file stage2 and root dir entries
 	pop di
-	je .found_kernel
+	je .found_stage2
 
 	add di, 32								; 32 is the size of one dir entry so goto next entry
 	inc bx
 	cmp bx, [bdb_dir_entries_count]			; cmp current entry vs total entries
-	jl .search_kernel
+	jl .search_stage2
 
-	; kernel not found
-	jmp kernel_not_found_error
+	; stage2 not found
+	jmp stage2_not_found_error
 
-.found_kernel:
-	; di should have the address of the kernel
+.found_stage2:
+	; di should have the address of the stage2
 	mov ax, [di + 26]						; offset of first_cluster_low in the dir entry is 26
-	mov [kernel_cluster], ax				; load the cluster of kernel
+	mov [stage2_cluster], ax				; load the cluster of stage2
 
 	; load fat from disk into memory
 	mov ax, [bdb_reserved_sectors]
@@ -130,15 +130,15 @@ start:
 	mov dl, [ebr_drive_number]
 	call disk_read
 
-	; read kernel and process FAT chain
-	mov bx, KERNEL_LOAD_SEGMENT
+	; read stage2 and process FAT chain
+	mov bx, STAGE2_LOAD_SEGMENT
 	mov es, bx
-	mov bx, KERNEL_LOAD_OFFSET
+	mov bx, STAGE2_LOAD_OFFSET
 
-.load_kernel_loop:
+.load_stage2_loop:
 	
 	;Read next cluster
-	mov ax, [kernel_cluster]				; loc of first cluster must be changed in future
+	mov ax, [stage2_cluster]				; loc of first cluster must be changed in future
 	add ax, 31
 
 	mov cl, 1
@@ -148,7 +148,7 @@ start:
 	add bx, [bdb_bytes_per_sector]
 
 	; compute location of next cluster
-	mov ax, [kernel_cluster]
+	mov ax, [stage2_cluster]
 	mov cx, 3
 	mul cx
 	mov cx, 2
@@ -171,18 +171,18 @@ start:
 	cmp ax, 0x0FF8							; end of chain
 	jae .read_finish
 
-	mov [kernel_cluster] , ax				; load the value of next cluster into [kernel_cluster]
-	jmp .load_kernel_loop
+	mov [stage2_cluster] , ax				; load the value of next cluster into [stage2_cluster]
+	jmp .load_stage2_loop
 
 .read_finish:
-	;jmp to our kernel
+	;jmp to our stage2
 	mov dl, [ebr_drive_number]				; boot device in dl
 
-	mov ax, KERNEL_LOAD_SEGMENT				; set segment registers
+	mov ax, STAGE2_LOAD_SEGMENT				; set segment registers
 	mov ds, ax
 	mov es, ax
 
-	jmp KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET
+	jmp STAGE2_LOAD_SEGMENT:STAGE2_LOAD_OFFSET
 
 	jmp wait_key_reboot
 
@@ -199,8 +199,8 @@ floppy_error:
 	call puts
 	jmp wait_key_reboot
 
-kernel_not_found_error:
-	mov si, msg_kernel_not_found
+stage2_not_found_error:
+	mov si, msg_stage2_not_found
 	call puts
 	jmp wait_key_reboot
 
@@ -337,15 +337,15 @@ disk_reset:
 
 
 
-file_kernel_bin:        db 'KERNEL  BIN'
+file_stage2_bin:        db 'STAGE2  BIN'
 
-kernel_cluster:			dw 0
+stage2_cluster:			dw 0
 msg_loading: 			db 'loading....' , ENDL , 0
 msg_read_fail:			db 'read disk failure', ENDL , 0
-msg_kernel_not_found:	db 'KERNEL.BIN file not found error', ENDL, 0
+msg_stage2_not_found:	db 'STAGE2.BIN file not found error', ENDL, 0
 
-KERNEL_LOAD_SEGMENT		equ 0x2000
-KERNEL_LOAD_OFFSET      equ 0
+STAGE2_LOAD_SEGMENT		equ 0x2000
+STAGE2_LOAD_OFFSET      equ 0
 
 
 times 510-($-$$) 		db 0
