@@ -180,7 +180,7 @@ start:
 
 	mov ax, STAGE2_LOAD_SEGMENT				; set segment registers
 	mov ds, ax
-	mov es, ax
+	mov es, ax			
 
 	jmp STAGE2_LOAD_SEGMENT:STAGE2_LOAD_OFFSET
 
@@ -344,8 +344,8 @@ msg_loading: 			db 'loading....' , ENDL , 0
 msg_read_fail:			db 'read disk failure', ENDL , 0
 msg_stage2_not_found:	db 'STAGE2.BIN file not found error', ENDL, 0
 
-STAGE2_LOAD_SEGMENT		equ 0x2000
-STAGE2_LOAD_OFFSET      equ 0
+STAGE2_LOAD_SEGMENT		equ 0x0
+STAGE2_LOAD_OFFSET      equ 0x500
 
 
 times 510-($-$$) 		db 0
